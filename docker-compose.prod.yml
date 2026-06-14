@@ -1,0 +1,217 @@
+version: "3.9"
+
+x-restart-policy: &restart-policy
+  restart: always
+
+x-resources: &resource-limits
+  deploy:
+    resources:
+      limits:
+        cpus: "2"
+        memory: 2G
+      reservations:
+        cpus: "0.5"
+        memory: 512M
+
+x-logging-prod: &logging-prod
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+    compress: "true"
+    tag: "{{.Name}}|{{.ImageName}}|{{.ID}}"
+
+x-healthcheck-prod: &healthcheck-prod
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 30s
+
+services:
+  postgres:
+    <<: *restart-policy
+    <<: *resource-limits
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 1G
+    logging: *logging-prod
+    healthcheck:
+      <<: *healthcheck-prod
+      test: ["CMD-SHELL", "pg_isready -U streamverse -d streamverse"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - postgres_backups:/backups
+    environment:
+      POSTGRES_DB: streamverse
+      POSTGRES_USER: streamverse
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_MULTIPLE_DATABASES: streamverse_test,streamverse_analytics
+
+  redis:
+    <<: *restart-policy
+    <<: *resource-limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    logging: *logging-prod
+    healthcheck:
+      <<: *healthcheck-prod
+      test: ["CMD", "redis-cli", "ping"]
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "1gb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+        "--save",
+        "900",
+        "1",
+        "--save",
+        "300",
+        "10",
+        "--save",
+        "60",
+        "10000",
+      ]
+
+  backend:
+    <<: *restart-policy
+    <<: *resource-limits
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        failure_action: pause
+    logging: *logging-prod
+    healthcheck:
+      <<: *healthcheck-prod
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      start_period: 60s
+
+  frontend:
+    <<: *restart-policy
+    <<: *resource-limits
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging: *logging-prod
+    healthcheck:
+      <<: *healthcheck-prod
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80/health",
+        ]
+
+  nginx:
+    <<: *restart-policy
+    <<: *resource-limits
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    logging: *logging-prod
+    healthcheck:
+      <<: *healthcheck-prod
+      test: ["CMD", "nginx", "-t"]
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+
+  ffmpeg:
+    <<: *restart-policy
+    <<: *resource-limits
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        limits:
+          cpus: "8"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 2G
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+    logging: *logging-prod
+    healthcheck:
+      <<: *healthcheck-prod
+      test: ["CMD-SHELL", "ps aux | grep -q [f]fmpeg || exit 1"]
+    volumes:
+      - media_data:/media
+      - ./ffmpeg/config:/config:ro
+      - ffmpeg_logs:/var/log/ffmpeg
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_backups:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  media_data:
+    driver: local
+  hls_cache:
+    driver: local
+  dash_cache:
+    driver: local
+  ffmpeg_logs:
+    driver: local

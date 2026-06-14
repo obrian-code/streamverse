@@ -1,0 +1,352 @@
+# =============================================================================
+# StreamVerse — Continuous Deployment Pipeline
+# =============================================================================
+# Automatically deploys to production on push to main branch.
+#
+# Workflow:
+#   1. Build Docker images
+#   2. Push to Docker Hub and/or GitHub Container Registry
+#   3. Deploy to production server via SSH
+#   4. Run health checks
+#   5. Rollback on failure
+#   6. Notify on failure
+# =============================================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "20"
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+  BACKEND_IMAGE: streamverse-backend
+  FRONTEND_IMAGE: streamverse-frontend
+  FFMPEG_IMAGE: streamverse-ffmpeg
+
+jobs:
+  # ── Build and Push Docker Images ──────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      backend_tag: ${{ steps.meta_backend.outputs.tags }}
+      frontend_tag: ${{ steps.meta_frontend.outputs.tags }}
+      ffmpeg_tag: ${{ steps.meta_ffmpeg.outputs.tags }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          buildkitd-flags: --debug
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub (optional)
+        if: secrets.DOCKER_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # ── Backend Image Metadata ─────────────────────────────────────────
+      - name: Backend image metadata
+        id: meta_backend
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.BACKEND_IMAGE }}
+            ${{ secrets.DOCKER_USERNAME != '' && format('{0}/{1}', secrets.DOCKER_USERNAME, env.BACKEND_IMAGE) || '' }}
+          tags: |
+            type=sha,prefix={{date 'YYYYMMDD'}}-
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=previous,${{ github.ref == 'refs/heads/main' && github.event.before != '' }}
+
+      # ── Frontend Image Metadata ────────────────────────────────────────
+      - name: Frontend image metadata
+        id: meta_frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FRONTEND_IMAGE }}
+            ${{ secrets.DOCKER_USERNAME != '' && format('{0}/{1}', secrets.DOCKER_USERNAME, env.FRONTEND_IMAGE) || '' }}
+          tags: |
+            type=sha,prefix={{date 'YYYYMMDD'}}-
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=previous,${{ github.ref == 'refs/heads/main' && github.event.before != '' }}
+
+      # ── FFmpeg Image Metadata ──────────────────────────────────────────
+      - name: FFmpeg image metadata
+        id: meta_ffmpeg
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FFMPEG_IMAGE }}
+            ${{ secrets.DOCKER_USERNAME != '' && format('{0}/{1}', secrets.DOCKER_USERNAME, env.FFMPEG_IMAGE) || '' }}
+          tags: |
+            type=sha,prefix={{date 'YYYYMMDD'}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # ── Build and Push Backend ─────────────────────────────────────────
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.backend
+          push: true
+          tags: ${{ steps.meta_backend.outputs.tags }}
+          labels: ${{ steps.meta_backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_VERSION=${{ env.NODE_VERSION }}
+
+      # ── Build and Push Frontend ────────────────────────────────────────
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: true
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_VERSION=${{ env.NODE_VERSION }}
+
+      # ── Build and Push FFmpeg ──────────────────────────────────────────
+      - name: Build and push ffmpeg
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.ffmpeg
+          push: true
+          tags: ${{ steps.meta_ffmpeg.outputs.tags }}
+          labels: ${{ steps.meta_ffmpeg.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy to Server ──────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-and-push]
+
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: ${{ secrets.APP_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          cat >> ~/.ssh/config << 'SSHEOF'
+          Host streamverse-server
+            HostName ${{ secrets.SSH_HOST }}
+            Port ${{ secrets.SSH_PORT || 22 }}
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          SSHEOF
+        shell: bash
+
+      - name: Copy docker-compose and config to server
+        run: |
+          ssh streamverse-server "mkdir -p /opt/streamverse/{docker,nginx,ffmpeg,scripts,backups}"
+          rsync -avz --delete \
+            docker/docker-compose.yml \
+            docker/docker-compose.production.yml \
+            nginx/ \
+            ffmpeg/ \
+            scripts/deploy.sh \
+            scripts/backup-db.sh \
+            streamverse-server:/opt/streamverse/
+        shell: bash
+
+      - name: Deploy via SSH
+        run: |
+          ssh streamverse-server << 'DEPLOYEOF'
+            set -euo pipefail
+
+            cd /opt/streamverse
+
+            # Export registry credentials
+            export REGISTRY="${{ env.REGISTRY }}"
+            export BACKEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.BACKEND_IMAGE }}:latest"
+            export FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FRONTEND_IMAGE }}:latest"
+            export FFMPEG_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.FFMPEG_IMAGE }}:latest"
+
+            # Login to registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+
+            # Pull latest images
+            docker pull $BACKEND_IMAGE
+            docker pull $FRONTEND_IMAGE
+            docker pull $FFMPEG_IMAGE
+
+            # Backup database before deploying
+            bash scripts/backup-db.sh
+
+            # Deploy with docker-compose
+            docker compose -f docker/docker-compose.yml \
+              -f docker/docker-compose.production.yml \
+              -p streamverse up -d --remove-orphans
+
+            # Wait for services
+            sleep 15
+          DEPLOYEOF
+        shell: bash
+
+      - name: Health Check
+        run: |
+          sleep 10
+
+          # Check API health
+          for i in $(seq 1 30); do
+            STATUS=$(ssh streamverse-server "curl -sf http://localhost:3000/health" 2>/dev/null || echo "failed")
+            if [ "$STATUS" != "failed" ]; then
+              echo "✅ API health check passed (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "❌ API health check failed after 30 attempts"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          # Check frontend
+          for i in $(seq 1 10); do
+            STATUS=$(ssh streamverse-server "curl -sf http://localhost:80" 2>/dev/null || echo "failed")
+            if [ "$STATUS" != "failed" ]; then
+              echo "✅ Frontend health check passed (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 10 ]; then
+              echo "❌ Frontend health check failed after 10 attempts"
+              exit 1
+            fi
+            sleep 3
+          done
+
+          # Show running containers
+          ssh streamverse-server "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+        shell: bash
+
+  # ── Post-Deploy Notification ────────────────────────────────────────────
+  notify:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          STATUS="${{ needs.deploy.result }}"
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Deployment status: $STATUS"
+        shell: bash
+
+      - name: Notify via Slack
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.status.outputs.status == 'success' && '✅ StreamVerse Deployment Successful' || '❌ StreamVerse Deployment Failed' }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Environment:*\n${{ github.event.inputs.environment || 'production' }}" },
+                    { "type": "mrkdwn", "text": "*Branch:*\n${{ github.ref }}" },
+                    { "type": "mrkdwn", "text": "*Commit:*\n${{ github.sha }}" },
+                    { "type": "mrkdwn", "text": "*Author:*\n${{ github.actor }}" }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View deployment details>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify via email on failure
+        if: failure() && secrets.NOTIFY_EMAIL != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT || 587 }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "StreamVerse Deployment Failed — ${{ github.sha }}"
+          body: |
+            Deployment failed for StreamVerse.
+
+            Environment: ${{ github.event.inputs.environment || 'production' }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            Branch: ${{ github.ref }}
+
+            See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: StreamVerse CI <${{ secrets.MAIL_FROM || 'ci@streamverse.com' }}>

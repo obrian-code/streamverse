@@ -1,0 +1,24 @@
+services:
+  backend:
+    environment:
+      NODE_ENV: development
+      DB_PASSWORD: streamverse_secret
+      DB_HOST: postgres
+      DB_USERNAME: streamverse
+      DB_DATABASE: streamverse
+      REDIS_HOST: redis
+    ports:
+      - "3000:3000"
+
+  nginx:
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+
+  frontend:
+    profiles: []
+
+  ffmpeg:
+    profiles:
+      - dont-start

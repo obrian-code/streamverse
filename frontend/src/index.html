@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="utf-8">
+  <title>StreamVerse — Plataforma de Streaming OTT</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="StreamVerse — mira TV en vivo, películas y series bajo demanda. Tu plataforma de streaming OTT definitiva.">
+  <meta name="application-name" content="StreamVerse">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StreamVerse">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+  <style>
+    .sv-loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; flex-direction: column; gap: 32px; padding: 32px; }
+    .sv-loading-logo { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #6366f1, #e50914); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; }
+    .sv-loading-spinner { width: 40px; height: 40px; border: 3px solid #1e293b; border-top-color: #e50914; border-radius: 50%; animation: sv-spin 0.8s linear infinite; }
+    @keyframes sv-spin { to { transform: rotate(360deg); } }
+    .sv-loading-skeleton { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 24px; }
+    .sv-skeleton-bar { background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%); background-size: 200% 100%; animation: sv-shimmer 1.5s infinite; border-radius: 8px; }
+    .sv-skeleton-hero { height: 60vh; border-radius: 12px; }
+    .sv-skeleton-row { display: flex; gap: 16px; }
+    .sv-skeleton-card { width: 160px; }
+    .sv-skeleton-card-img { height: 240px; margin-bottom: 8px; }
+    .sv-skeleton-text { height: 14px; margin-bottom: 6px; }
+    .sv-skeleton-text-sm { height: 10px; width: 60%; }
+    @keyframes sv-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .sv-skip-link { position: absolute; top: -100%; left: 16px; z-index: 10000; padding: 12px 24px; background: #6366f1; color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: top 0.2s; }
+    .sv-skip-link:focus { top: 16px; }
+  </style>
+</head>
+<body class="dark:bg-surface-900 dark:text-white antialiased">
+  <a href="#main-content" class="sv-skip-link">Saltar al contenido principal</a>
+  <sv-root>
+    <div class="sv-loading">
+      <div class="sv-loading-logo">StreamVerse</div>
+      <div class="sv-loading-skeleton">
+        <div class="sv-skeleton-bar sv-skeleton-hero"></div>
+        <div class="sv-skeleton-row">
+          <div class="sv-skeleton-card">
+            <div class="sv-skeleton-bar sv-skeleton-card-img"></div>
+            <div class="sv-skeleton-bar sv-skeleton-text"></div>
+            <div class="sv-skeleton-bar sv-skeleton-text-sm"></div>
+          </div>
+          <div class="sv-skeleton-card">
+            <div class="sv-skeleton-bar sv-skeleton-card-img"></div>
+            <div class="sv-skeleton-bar sv-skeleton-text"></div>
+            <div class="sv-skeleton-bar sv-skeleton-text-sm"></div>
+          </div>
+          <div class="sv-skeleton-card">
+            <div class="sv-skeleton-bar sv-skeleton-card-img"></div>
+            <div class="sv-skeleton-bar sv-skeleton-text"></div>
+            <div class="sv-skeleton-bar sv-skeleton-text-sm"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sv-root>
+  <noscript>Activa JavaScript para usar StreamVerse.</noscript>
+</body>
+</html>

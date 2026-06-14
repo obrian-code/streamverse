@@ -1,0 +1,35 @@
+FROM jrottenberg/ffmpeg:latest AS base
+
+LABEL maintainer="StreamVerse Team" \
+      description="FFmpeg with HLS/DASH transcoding support" \
+      version="1.0.0"
+
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    curl \
+    ca-certificates \
+    python3 \
+    mkvtoolnix \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ffmpeg/transcode.sh /usr/local/bin/transcode
+COPY ffmpeg/live-transcode.sh /usr/local/bin/live-transcode
+
+RUN chmod +x /usr/local/bin/transcode /usr/local/bin/live-transcode && \
+    mkdir -p /media/input /media/output /media/live /config
+
+ENV MEDIA_DIR=/media \
+    SEGMENT_DURATION=4 \
+    HLS_LIST_SIZE=0 \
+    THREADS=auto
+
+WORKDIR /media
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD ps aux | grep -q [f]fmpeg || exit 1
+
+VOLUME ["/media", "/config"]
+
+ENTRYPOINT ["/usr/local/bin/transcode"]

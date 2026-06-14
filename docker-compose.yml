@@ -1,0 +1,156 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-healthcheck: &healthcheck-base
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 15s
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: streamverse-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    environment:
+      POSTGRES_DB: streamverse
+      POSTGRES_USER: streamverse
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-streamverse_secret}
+      POSTGRES_MULTIPLE_DATABASES: streamverse_test,streamverse_analytics
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "pg_isready -U streamverse -d streamverse"]
+    logging: *default-logging
+    networks:
+      - streamverse-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: streamverse-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD", "redis-cli", "ping"]
+    logging: *default-logging
+    networks:
+      - streamverse-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        NODE_VERSION: 20-alpine
+    container_name: streamverse-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - backend/.env
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - backend_uploads:/app/uploads
+      - media_data:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - streamverse-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        NODE_VERSION: 20-alpine
+        NGINX_VERSION: alpine
+        CONFIGURATION: production
+    container_name: streamverse-frontend
+    restart: unless-stopped
+    ports:
+      - "80"
+    depends_on:
+      - backend
+    logging: *default-logging
+    networks:
+      - streamverse-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: streamverse-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - hls_cache:/tmp/hls_cache
+      - dash_cache:/tmp/dash_cache
+    depends_on:
+      - backend
+    logging: *default-logging
+    networks:
+      - streamverse-network
+
+  ffmpeg:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ffmpeg
+    container_name: streamverse-ffmpeg
+    restart: unless-stopped
+    volumes:
+      - media_data:/media
+      - ./ffmpeg/config:/config:ro
+    environment:
+      MEDIA_DIR: /media
+      SEGMENT_DURATION: 4
+      THREADS: auto
+    depends_on:
+      - nginx
+    healthcheck:
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "ps aux | grep -q [f]fmpeg || exit 1"]
+    logging: *default-logging
+    networks:
+      - streamverse-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  media_data:
+    driver: local
+  hls_cache:
+    driver: local
+  dash_cache:
+    driver: local
+
+networks:
+  streamverse-network:
+    driver: bridge
+    name: streamverse-network
