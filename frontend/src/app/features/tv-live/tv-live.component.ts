@@ -5,8 +5,8 @@ import { StreamingService } from '../../core/services/streaming.service';
 @Component({
   selector: 'sv-tv-live',
   template: `
-    <div class="min-h-screen bg-black">
-      <div class="flex flex-col lg:flex-row">
+    <div class="h-full flex flex-col bg-black">
+      <div class="flex flex-1 flex-col lg:flex-row min-h-0">
         <div class="flex-1 relative bg-black" [style.min-height]="'var(--player-min-height)'">
           @if (selectedChannel(); as channel) {
             <sv-video-player
@@ -35,7 +35,7 @@ import { StreamingService } from '../../core/services/streaming.service';
           </div>
         </div>
 
-        <div class="w-full lg:w-96 xl:w-[420px] bg-surface-950 border-l border-surface-800/50 flex flex-col">
+        <div class="w-full lg:w-96 xl:w-[420px] bg-surface-950 border-t lg:border-t-0 lg:border-l border-surface-800/50 flex flex-col">
           <div class="p-4 border-b border-surface-800/50">
             <div class="flex items-center gap-2 mb-3">
               <mat-icon class="text-accent">live_tv</mat-icon>

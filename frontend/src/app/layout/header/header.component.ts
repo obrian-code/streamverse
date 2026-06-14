@@ -5,7 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'sv-header',
   template: `
-    <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+    <header class="fixed top-0 left-0 z-50 w-full transition-all duration-300 lg:w-[calc(100%-var(--sidebar-width))] lg:left-[var(--sidebar-width)]"
             [ngClass]="{
               'bg-surface-900/95': isScrolled(),
               'backdrop-blur-xl': isScrolled(),
@@ -97,8 +97,8 @@ import { AuthService } from '../../core/services/auth.service';
               </button>
             </mat-menu>
           } @else {
-            <a routerLink="/auth/login" class="btn-secondary text-sm px-4 py-2">Iniciar sesión</a>
-            <a routerLink="/auth/register" class="btn-primary text-sm px-4 py-2">Registrarse</a>
+            <a routerLink="/auth/login" class="btn-secondary text-sm px-4 py-2 inline-flex items-center">Iniciar sesión</a>
+            <a routerLink="/auth/register" class="btn-primary text-sm px-4 py-2 inline-flex items-center">Registrarse</a>
           }
         </div>
       </div>

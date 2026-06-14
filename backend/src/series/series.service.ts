@@ -55,8 +55,17 @@ export class SeriesService {
       order: { createdAt: 'DESC' },
     });
 
+    const seriesWithCounts = await Promise.all(
+      series.map(async (s) => {
+        const episodeCount = await this.episodesRepository.count({
+          where: { seriesId: s.id },
+        });
+        return { ...s, episodeCount };
+      }),
+    );
+
     return {
-      data: series,
+      data: seriesWithCounts,
       page,
       limit,
       total,
@@ -113,11 +122,20 @@ export class SeriesService {
   }
 
   async getTrending(limit: number = 10) {
-    return this.seriesRepository.find({
+    const series = await this.seriesRepository.find({
       where: { status: SeriesStatus.PUBLISHED },
       order: { views: 'DESC' },
       take: limit,
     });
+
+    return await Promise.all(
+      series.map(async (s) => {
+        const episodeCount = await this.episodesRepository.count({
+          where: { seriesId: s.id },
+        });
+        return { ...s, episodeCount };
+      }),
+    );
   }
 
   // Episode methods

@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'sv-footer',
   template: `
-    <footer class="bg-surface-950 border-t border-surface-800/50 mt-auto">
+    <footer class="bg-surface-950 border-t border-surface-800/50 mt-auto lg:ml-[var(--sidebar-width)]">
       <div class="content-container py-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div class="space-y-4">

@@ -13,7 +13,7 @@ import { AuthService } from '../../core/services/auth.service';
 
     <aside class="fixed top-0 left-0 z-50 h-full w-[var(--sidebar-width)] bg-surface-950/95 backdrop-blur-xl
                   border-r border-surface-800/50 transform transition-transform duration-300 ease-out
-                  lg:translate-x-0 lg:static lg:z-auto"
+                  lg:translate-x-0"
            [class.translate-x-0]="isOpen()"
            [class.-translate-x-full]="!isOpen()">
       <div class="flex flex-col h-full">

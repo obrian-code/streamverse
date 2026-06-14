@@ -25,11 +25,13 @@ export class CategoriesController {
     if (!type || type === 'channel') queries.push(this.channelsService.getCategories());
 
     const results = await Promise.all(queries);
-    const allCategories = [...new Set(results.flat())].map((name, i) => ({
-      id: `cat_${i}`,
-      name,
-      slug: name.toLowerCase().replace(/\s+/g, '-'),
-    }));
+    const allCategories = [...new Set(results.flat())]
+      .filter((name): name is string => !!name)
+      .map((name, i) => ({
+        id: `cat_${i}`,
+        name,
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+      }));
 
     return { data: allCategories };
   }

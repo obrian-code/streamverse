@@ -12,7 +12,7 @@ export interface FilterOption {
     <div class="flex flex-wrap items-center gap-2">
       <button (click)="select(null)"
               class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-                     border"
+                     border flex items-center gap-1.5"
               [class.bg-accent]="selectedId() === null"
               [class.text-white]="selectedId() === null"
               [class.border-accent]="selectedId() === null"

@@ -56,15 +56,6 @@ async function bootstrap() {
     },
   });
 
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get('/health', (req, res) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    });
-  });
-
   const port = process.env.APP_PORT || 3000;
   await app.listen(port);
   logger.log(`StreamVerse API running on port ${port}`);

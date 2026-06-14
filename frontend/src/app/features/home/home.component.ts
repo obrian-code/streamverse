@@ -118,7 +118,16 @@ export class HomeComponent implements OnInit {
 
     this.contentService.getRecommended().subscribe({
       next: (items) => { this.recommended.set(items); checkDone(); },
-      error: () => checkDone()
+      error: () => {
+        this.contentService.getTrending().subscribe({
+          next: (items) => {
+            const shuffled = [...items].sort(() => Math.random() - 0.5);
+            this.recommended.set(shuffled);
+          },
+          error: () => {}
+        });
+        checkDone();
+      }
     });
 
     this.contentService.getCategories().subscribe({

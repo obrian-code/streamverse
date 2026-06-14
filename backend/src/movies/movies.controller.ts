@@ -48,8 +48,8 @@ export class MoviesController {
   @Get('featured')
   @ApiOperation({ summary: 'Get featured movies for hero' })
   @ApiResponse({ status: 200, description: 'Featured movies' })
-  async getFeatured(@Query('limit') limit?: number) {
-    return this.moviesService.getTrending(limit);
+  async getFeatured(@Query('limit') limit?: string) {
+    return this.moviesService.getTrending(limit ? parseInt(limit, 10) : 10);
   }
 
   @Public()

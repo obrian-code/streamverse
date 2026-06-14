@@ -19,9 +19,8 @@ import { FilterOption } from '../../shared/components/category-filter/category-f
         <select [(ngModel)]="sortBy"
                 (ngModelChange)="loadSeries()"
                 class="input-field w-auto text-sm">
-          <option value="popularity">Más populares</option>
+          <option value="views">Más populares</option>
           <option value="rating">Mejor calificadas</option>
-          <option value="year">Más recientes</option>
           <option value="title">A-Z</option>
         </select>
       </div>
@@ -72,7 +71,7 @@ export class SeriesComponent implements OnInit {
   genres = signal<Genre[]>([]);
   loading = signal(false);
   searchQuery = '';
-  sortBy = 'popularity';
+  sortBy = 'views';
   selectedGenre: string | null = null;
   currentPage = 1;
   totalPages = 1;
@@ -95,7 +94,6 @@ export class SeriesComponent implements OnInit {
     this.contentService.getSeries({
       page: this.currentPage,
       genre: this.selectedGenre || undefined,
-      sort: this.sortBy,
       search: this.searchQuery || undefined
     }).subscribe({
       next: (response) => {

@@ -18,6 +18,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { HistoryModule } from './history/history.module';
 import { ContentModule } from './content/content.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { ContentModule } from './content/content.module';
     UploadsModule,
     HistoryModule,
     ContentModule,
+    HealthModule,
   ],
   providers: [
     {

@@ -9,7 +9,7 @@ import { RouterOutlet } from '@angular/router';
 
       <div class="flex flex-1">
         <sv-sidebar [open]="sidebarOpen" (close)="sidebarOpen.set(false)" />
-        <main id="main-content" class="flex-1 min-h-screen pt-[var(--header-height)] lg:ml-0">
+        <main id="main-content" class="w-full min-h-screen pt-[var(--header-height)] lg:w-[calc(100%-var(--sidebar-width))] lg:ml-[var(--sidebar-width)]">
           <router-outlet />
         </main>
       </div>
