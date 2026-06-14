@@ -27,3 +27,12 @@ dash_cache/
 *.trace
 *.network-request
 *.network-response
+
+# Temp files
+chrome-snapshot*.txt
+snapshot-*.txt
+screenshot-*.png
+frontend/.angular/cache/
+
+# Empty file
+nginx/mime.types
