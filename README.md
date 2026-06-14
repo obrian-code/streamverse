@@ -390,11 +390,6 @@ streamverse/
 │   ├── setup.sh            # First-time setup
 │   ├── backup-db.sh        # Database backup
 │   └── seed-data.sh        # Database seed
-├── ai-memory/              # AI-assisted development memory
-│   ├── architecture.md     # Architecture documentation
-│   ├── decisions.md        # ADRs (Architecture Decision Records)
-│   ├── glossary.md         # Domain glossary
-│   └── lessons-learned.md  # Development lessons
 ├── docs/                   # Documentation & images
 ├── .github/workflows/      # GitHub Actions CI/CD
 │   ├── ci.yml
