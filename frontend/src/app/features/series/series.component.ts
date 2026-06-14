@@ -37,11 +37,10 @@ import { FilterOption } from '../../shared/components/category-filter/category-f
           }
         </div>
       } @else if (series().length === 0) {
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <mat-icon class="text-6xl text-surface-600">tv_off</mat-icon>
-          <h3 class="text-xl text-surface-400">No se encontraron series</h3>
-          <p class="text-surface-500 text-sm">Intenta con otros filtros</p>
-        </div>
+        <sv-empty-state
+          icon="tv_off"
+          title="No se encontraron series"
+          message="Intenta con otros filtros" />
       } @else {
         <div class="content-grid">
           @for (s of series(); track s.id) {

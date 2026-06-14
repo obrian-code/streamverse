@@ -46,12 +46,12 @@ import { FavoritesService } from '../../core/services/favorites.service';
           }
         </div>
       } @else if (favorites().length === 0) {
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <mat-icon class="text-6xl text-surface-600">favorite_border</mat-icon>
-          <h3 class="text-xl text-surface-400">No tienes favoritos</h3>
-          <p class="text-surface-500 text-sm">Agrega películas y series a tu lista de favoritos</p>
-          <a routerLink="/movies" class="btn-primary mt-4">Explorar contenido</a>
-        </div>
+        <sv-empty-state
+          icon="favorite_border"
+          title="No tienes favoritos"
+          message="Agrega películas y series a tu lista de favoritos">
+          <a routerLink="/movies" class="btn-primary" actions>Explorar contenido</a>
+        </sv-empty-state>
       } @else {
         <div class="content-grid">
           @for (item of favorites(); track item.id) {

@@ -17,6 +17,23 @@
   --header-height: 68px;
   --sidebar-width: 280px;
   --player-min-height: 480px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
 }
 
 * {
@@ -87,6 +104,11 @@ input, textarea, select {
 img {
   max-width: 100%;
   height: auto;
+}
+
+button, a, [role="button"], input, select, textarea {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 @layer components {

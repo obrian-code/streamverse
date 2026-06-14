@@ -39,11 +39,10 @@ import { FilterOption } from '../../shared/components/category-filter/category-f
           }
         </div>
       } @else if (movies().length === 0) {
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <mat-icon class="text-6xl text-surface-600">movie_off</mat-icon>
-          <h3 class="text-xl text-surface-400">No se encontraron películas</h3>
-          <p class="text-surface-500 text-sm">Intenta con otros filtros o términos de búsqueda</p>
-        </div>
+        <sv-empty-state
+          icon="movie_off"
+          title="No se encontraron películas"
+          message="Intenta con otros filtros o términos de búsqueda" />
       } @else {
         <div class="content-grid">
           @for (movie of movies(); track movie.id) {

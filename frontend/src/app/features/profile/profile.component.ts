@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService, User, UserPreferences } from '../../core/services/auth.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'sv-profile',
@@ -129,7 +129,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 export class ProfileComponent implements OnInit {
   auth = inject(AuthService);
   private fb = inject(FormBuilder);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
 
   profileForm!: FormGroup;
   saving = signal(false);
@@ -161,7 +161,7 @@ export class ProfileComponent implements OnInit {
     this.auth.updateProfile(this.profileForm.value).subscribe({
       next: () => {
         this.saving.set(false);
-        this.snackBar.open('Perfil actualizado correctamente', 'Cerrar', { duration: 3000 });
+        this.toast.success('Perfil actualizado correctamente');
       },
       error: () => this.saving.set(false)
     });

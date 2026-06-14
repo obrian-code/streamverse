@@ -34,12 +34,12 @@ import { HistoryService, WatchHistoryItem } from '../../core/services/history.se
           }
         </div>
       } @else if (history().length === 0) {
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <mat-icon class="text-6xl text-surface-600">history</mat-icon>
-          <h3 class="text-xl text-surface-400">No hay historial</h3>
-          <p class="text-surface-500 text-sm">Los videos que veas aparecerán aquí</p>
-          <a routerLink="/movies" class="btn-primary mt-4">Comenzar a ver</a>
-        </div>
+        <sv-empty-state
+          icon="history"
+          title="No hay historial"
+          message="Los videos que veas aparecerán aquí">
+          <a routerLink="/movies" class="btn-primary" actions>Comenzar a ver</a>
+        </sv-empty-state>
       } @else {
         <div class="space-y-1">
           @for (item of history(); track item.id) {

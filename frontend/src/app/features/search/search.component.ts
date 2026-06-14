@@ -63,17 +63,15 @@ import { ContentService, MediaItem } from '../../core/services/content.service';
           }
         </div>
       } @else if (query()) {
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <mat-icon class="text-6xl text-surface-600">search_off</mat-icon>
-          <h3 class="text-xl text-surface-400">Sin resultados</h3>
-          <p class="text-surface-500 text-sm">No encontramos contenido para "{{ query() }}"</p>
-        </div>
+        <sv-empty-state
+          icon="search_off"
+          title="Sin resultados"
+          [message]="'No encontramos contenido para &quot;' + query() + '&quot;'" />
       } @else {
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <mat-icon class="text-6xl text-surface-600">search</mat-icon>
-          <h3 class="text-xl text-surface-400">Busca tu contenido favorito</h3>
-          <p class="text-surface-500 text-sm">Encuentra películas, series y canales</p>
-        </div>
+        <sv-empty-state
+          icon="search"
+          title="Busca tu contenido favorito"
+          message="Encuentra películas, series y canales" />
       }
     </div>
   `,

@@ -16,6 +16,8 @@ import { RouterOutlet } from '@angular/router';
 
       <sv-footer />
     </div>
+
+    <sv-toast />
   `,
   styles: [`
     :host { display: contents; }

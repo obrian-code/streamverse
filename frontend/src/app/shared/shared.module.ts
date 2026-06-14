@@ -17,6 +17,9 @@ import { ContentRowComponent } from './components/content-row/content-row.compon
 import { VideoPlayerComponent } from './components/video-player/video-player.component';
 import { SearchBarComponent } from './components/search-bar/search-bar.component';
 import { CategoryFilterComponent } from './components/category-filter/category-filter.component';
+import { EmptyStateComponent } from './components/empty-state/empty-state.component';
+import { ToastComponent } from './components/toast/toast.component';
+import { ModalComponent } from './components/modal/modal.component';
 
 import { TruncatePipe } from './pipes/truncate.pipe';
 import { DurationPipe } from './pipes/duration.pipe';
@@ -31,7 +34,10 @@ const components = [
   ContentRowComponent,
   VideoPlayerComponent,
   SearchBarComponent,
-  CategoryFilterComponent
+  CategoryFilterComponent,
+  EmptyStateComponent,
+  ToastComponent,
+  ModalComponent
 ];
 
 const pipes = [TruncatePipe, DurationPipe, SafeUrlPipe];
